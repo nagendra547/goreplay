@@ -107,7 +107,7 @@ func (c *HTTPClient) Connect() (err error) {
 		if c.proxy.Scheme != "http" {
 			panic("Unsupported HTTP Proxy method")
 		}
-		Debug("[HTTPClient] Connecting to proxy", c.proxy.String())
+		Debug("[HTTPClient] Connecting to proxy", c.proxy.String(), "<>", toDial)
 		c.conn, err = net.DialTimeout("tcp", c.proxy.Host, c.config.ConnectionTimeout)
 		if c.scheme == "https" {
 			c.conn.Write([]byte("CONNECT " + toDial + " HTTP/1.1\r\n"))
@@ -138,12 +138,14 @@ func (c *HTTPClient) Connect() (err error) {
 				}
 			}
 		}
+		Debug("[HTTPClient] Proxy successfully connected")
 	} else {
 		c.conn, err = net.DialTimeout("tcp", toDial, c.config.ConnectionTimeout)
 	}
 
 	if c.scheme == "https" {
 		// Wrap our socket in TLS
+		Debug("[HTTPClient] Wrapping socket in TLS", c.host)
 		tlsConn := tls.Client(c.conn, &tls.Config{InsecureSkipVerify: true, ServerName: c.host})
 
 		if err = tlsConn.Handshake(); err != nil {
@@ -151,6 +153,7 @@ func (c *HTTPClient) Connect() (err error) {
 		}
 
 		c.conn = tlsConn
+		Debug("[HTTPClient] Successfully wrapped in TLS")
 	}
 
 	return
