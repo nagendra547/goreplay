@@ -109,6 +109,9 @@ func (c *HTTPClient) Connect() (err error) {
 		}
 		Debug("[HTTPClient] Connecting to proxy", c.proxy.String(), "<>", toDial)
 		c.conn, err = net.DialTimeout("tcp", c.proxy.Host, c.config.ConnectionTimeout)
+		if err != nil {
+			return
+		}
 		if c.scheme == "https" {
 			c.conn.Write([]byte("CONNECT " + toDial + " HTTP/1.1\r\n"))
 			if c.proxyAuth != "" {
@@ -141,6 +144,9 @@ func (c *HTTPClient) Connect() (err error) {
 		Debug("[HTTPClient] Proxy successfully connected")
 	} else {
 		c.conn, err = net.DialTimeout("tcp", toDial, c.config.ConnectionTimeout)
+		if err != nil {
+			return
+		}
 	}
 
 	if c.scheme == "https" {
