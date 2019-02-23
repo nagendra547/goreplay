@@ -74,6 +74,8 @@ type Listener struct {
 
 	bpfFilter     string
 	timestampType string
+	overrideSnapLen bool
+	immediateMode bool
 
 	bufferSize int
 
@@ -98,7 +100,7 @@ const (
 )
 
 // NewListener creates and initializes new Listener object
-func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration, bpfFilter string, timestampType string, bufferSize int) (l *Listener) {
+func NewListener(addr string, port string, engine int, trackResponse bool, expire time.Duration, bpfFilter string, timestampType string, bufferSize int, overrideSnapLen bool, immediateMode bool) (l *Listener) {
 	l = &Listener{}
 
 	l.packetsChan = make(chan *packet, 10000)
@@ -114,7 +116,9 @@ func NewListener(addr string, port string, engine int, trackResponse bool, expir
 	l.trackResponse = trackResponse
 	l.bpfFilter = bpfFilter
 	l.timestampType = timestampType
+	l.immediateMode = immediateMode
 	l.bufferSize = bufferSize
+	l.overrideSnapLen = overrideSnapLen
 
 	l.addr = addr
 	_port, _ := strconv.Atoi(port)
@@ -349,7 +353,7 @@ func (t *Listener) readPcap() {
 				}
 			}
 
-			if it, err := net.InterfaceByName(device.Name); err == nil {
+			if it, err := net.InterfaceByName(device.Name); err == nil && !t.overrideSnapLen {
 				// Auto-guess max length of packet to capture
 				inactive.SetSnapLen(it.MTU + 68*2)
 			} else {
@@ -358,7 +362,10 @@ func (t *Listener) readPcap() {
 
 			inactive.SetTimeout(t.messageExpire)
 			inactive.SetPromisc(true)
-
+			inactive.SetImmediateMode(t.immediateMode)
+			if t.immediateMode {
+				log.Println("Setting immediate mode")
+			}
 			if t.bufferSize > 0 {
 				inactive.SetBufferSize(t.bufferSize)
 			}
